@@ -1,4 +1,4 @@
-name: Node.js Package
+name: public
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-      - run: npm release:archive
+      - run: npm release
       - uses: actions/upload-artifact@v4
         with:
           name: keyserver
