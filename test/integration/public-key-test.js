@@ -497,7 +497,7 @@ describe('Public Key Integration Tests', function() {
   describe('checkCollision', () => {
     it('should throw error if key exists with same key ID but different fingerprint', async () => {
       await publicKey.put({emails: [], publicKeyArmored, origin, i18n});
-      sinon.stub(pgp, 'parseKey').returns(Promise.resolve({keyId: mailsSent[0].params.keyId, fingerprint: '123', publicKeyArmored}));
+      sinon.stub(pgp, 'parseKey').returns(Promise.resolve({keyId: mailsSent[0].params.keyId, fingerprint: '123', publicKeyArmored, userIds: [{email: mailsSent[0].params.email}]}));
       await expect(publicKey.put({emails: [], publicKeyArmored, origin, i18n})).to.eventually.be.rejectedWith('Key ID collision error: a key ID of this key already exists on the server.');
     });
 
@@ -525,6 +525,15 @@ describe('Public Key Integration Tests', function() {
         }]
       }));
       await expect(publicKey.checkCollision({})).to.eventually.be.rejectedWith('Key ID collision error: a key ID of this key already exists on the server.');
+    });
+  });
+
+  describe('enforceRateLimit', () => {
+    it('should throw error if more than uploadRateLimit keys exist on the server', async () => {
+      await publicKey.put({emails: [], publicKeyArmored, origin, i18n});
+      await publicKey.put({emails: [], publicKeyArmored: publicKeyArmored2, origin, i18n});
+      config.publicKey.uploadRateLimit = 1;
+      await expect(publicKey.enforceRateLimit({userIds: [{email: 'test1@example.com'}, {email: 'test2@example.com'}]})).to.eventually.be.rejectedWith('Too many requests for this email address. Upload temporarily blocked.');
     });
   });
 });

@@ -190,6 +190,8 @@ The server is written is in JavaScript ES2020 and runs on [Node.js](https://node
 
 It uses [MongoDB](https://www.mongodb.com/) v6.0+ as its database.
 
+Note: You may also use [FerretDB](https://ferretdb.com), which aims to provide a Free Software replacement for MongoDB. But you will need to use ferretdb-compat branch since FerretDB is currently missing some features required by Mailvelope Keyserver.
+
 # Getting started
 ## Installation
 
@@ -209,7 +211,7 @@ This is the installation guide to get a local development installation on macOS 
 ```shell
 brew update
 brew install mongodb-community@6.0
-mongod --config /usr/local/etc/mongod.conf
+mongod --config /opt/homebrew/etc/mongod.conf
 ```
 
 Now the mongo daemon should be running in the background. To have mongo start automatically as a background service on startup you can also do:
@@ -218,10 +220,10 @@ Now the mongo daemon should be running in the background. To have mongo start au
 brew services start mongodb
 ```
 
-Now you can use the `mongo` CLI client to create a new test database. The username and password used here match the ones in the `.env` file. **Be sure to change them for production use**:
+Now you can use the `mongosh` CLI client to create a new test database. The username and password used here match the ones in the `.env` file. **Be sure to change them for production use**:
 
 ```shell
-mongo
+mongosh
 use keyserver-test
 db.createUser({ user:"keyserver-user", pwd:"your_mongo_db_pwd", roles:[{ role:"readWrite", db:"keyserver-test" }] })
 ```
@@ -278,6 +280,18 @@ SENDER_NAME=My Key Server Demo
 SENDER_EMAIL=info@your-key-server.net
 ```
 
+## Unit and integration tests
+
+Create a test database for the integration tests:
+
+```shell
+mongosh
+use keyserver-test-int
+db.createUser({ user:"keyserver-user", pwd:"your_mongo_db_pwd", roles:[{ role:"readWrite", db:"keyserver-test-int" }] })
+```
+
+Afterwards start the unit tests with `npm test`.
+
 ### Production
 
 For production use, settings configuration with environment variables is recommended as `NODE_ENV=production` is REQUIRED to be set as environment variable to instruct node.js to adapt e.g. logging to production use.
@@ -286,12 +300,10 @@ For production use, settings configuration with environment variables is recomme
 
 Available settings with its environment-variable-names, possible/example values and meaning (if not self-explainable). Defaults **bold**:
 
-* NODE_ENV=development|production
-  (no default, needs to be set as environment variable)
+* NODE_ENV=development|production (no default, needs to be set as environment variable)
 * LOG_LEVEL=debug|**info**|notice|warning|err|crit|alert|emerg
 * SERVER_HOST=**localhost**
-* PORT=**8888**
-  (application server port)
+* PORT=**8888** (application server port)
 * CORS_HEADER=true [CORS headers](https://hapi.dev/api#-routeoptionscors)
 * HTTP_SECURITY_HEADER=true [security headers](https://hapi.dev/api#-routeoptionssecurity)
 * CSP_HEADER=true (add Content-Security-Policy as in src/lib/csp.js)
@@ -300,16 +312,15 @@ Available settings with its environment-variable-names, possible/example values 
 * MONGO_PASS=your_mongo_db_pwd
 * SMTP_HOST=smpt.your-email-provider.com
 * SMTP_PORT=465
-* SMTP_TLS=true
-* SMTP_STARTTLS=true
-* SMTP_PGP=**true**
-  (encrypt verification message with public key (allows to verify presence + usability of private key at owner of the email address))
+* SMTP_TLS=**true** (if true the connection will use TLS when connecting to server. If false then TLS is used if server supports the STARTTLS extension. In most cases set this value to true if you are connecting to port 465. For port 587 or 25 keep it false.)
+* SMTP_STARTTLS=**true** (if this is true and SMTP_TLS is false then Nodemailer tries to use STARTTLS even if the server does not advertise support for it.)
+* SMTP_PGP=**true** (encrypt verification message with public key (allows to verify presence + usability of private key at owner of the email address))
 * SMTP_USER=smtp_user
 * SMTP_PASS=smtp_pass
 * SENDER_NAME="OpenPGP Key Server"
 * SENDER_EMAIL=noreply@your-key-server.net
-* PUBLIC_KEY_PURGE_TIME=**14**
-  (number of days after which uploaded keys are deleted if they have not been verified)
+* PUBLIC_KEY_PURGE_TIME=**14** (number of days after which uploaded keys are deleted if they have not been verified)
+* UPLOAD_RATE_LIMIT=10 (key upload rate limit per email address in the PUBLIC_KEY_PURGE_TIME period)
 
 The following variables are available to customize the filtering behavior as outlined in [Abuse resistant key server](#abuse-resistant-key-server):
 
